@@ -349,9 +349,9 @@ int main(void)
       }
 
       // Wait for adc sampling
-      while(LL_ADC_REG_IsConversionOngoing(ADC1));
+     // while(LL_ADC_REG_IsConversionOngoing(ADC1));
 
-      //LL_mDelay(400);
+      LL_mDelay(1);
       //printf("bump %d\n", count++);
       printf("Adc: %d\n", aADCxConvertedData[0]);
     /* USER CODE END WHILE */
@@ -380,7 +380,7 @@ void SystemClock_Config(void)
   }
 
   /* Main PLL configuration and activation */
-  LL_RCC_PLL_ConfigDomain_ADC(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLP_DIV_2);
+  LL_RCC_PLL_ConfigDomain_ADC(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLP_DIV_15);
   LL_RCC_PLL_EnableDomain_ADC();
   LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLR_DIV_3);
   LL_RCC_PLL_Enable();
