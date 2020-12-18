@@ -50,6 +50,9 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+/* Definitions of data related to this example */
+/* Definition of ADCx conversions data table size */
+#define ADC_CONVERTED_DATA_BUFFER_SIZE   (   1U)
 
 /* USER CODE END PM */
 
@@ -182,7 +185,7 @@ void AdcDmaTransferComplete_Callback() {
     /* using LL ADC driver helper macro.                                        */
     /* Management of the 2nd half of the buffer */
     //aADCxConvertedData_Voltage_mVolt[tmp_index] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, aADCxConvertedData[tmp_index], LL_ADC_RESOLUTION_12B);
-    printf("AdcDmaTransferComplete: %d\n", aADCxConvertedData[0]);
+  //  printf("AdcDmaTransferComplete: %d\n", aADCxConvertedData[0]);
 }
 
 /**
@@ -196,7 +199,7 @@ void AdcDmaTransferHalf_Callback() {
     /* using LL ADC driver helper macro.                                        */
     /* Management of the 1st half of the buffer */
 //        aADCxConvertedData_Voltage_mVolt[tmp_index] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, aADCxConvertedData[tmp_index], LL_ADC_RESOLUTION_12B);
-    printf("AdcDmaTransferHalf: %d\n", aADCxConvertedData[0]);
+  //  printf("AdcDmaTransferHalf: %d\n", aADCxConvertedData[0]);
 }
 
 /**
@@ -324,13 +327,7 @@ int main(void)
     /*       Software can be optimized by removing some of these checks, if     */
     /*       they are not relevant considering previous settings and actions    */
     /*       in user application.                                               */
-    if ((LL_ADC_IsEnabled(ADC1) == 1) &&
-        (LL_ADC_IsDisableOngoing(ADC1) == 0) &&
-        (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)) {
-        LL_ADC_REG_StartConversion(ADC1);
-    } else {
-        printf("Error: ADC conversion start could not be performed\n");
-    }
+
 
   /* USER CODE END 2 */
 
@@ -342,8 +339,21 @@ int main(void)
   while (1)
   {
       LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-      LL_mDelay(1000);
-      printf("bump %d\n", count++);
+
+      if ((LL_ADC_IsEnabled(ADC1) == 1) &&
+          (LL_ADC_IsDisableOngoing(ADC1) == 0) &&
+          (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)) {
+          LL_ADC_REG_StartConversion(ADC1);
+      } else {
+          printf("Error: ADC conversion start could not be performed\n");
+      }
+
+      // Wait for adc sampling
+      while(LL_ADC_REG_IsConversionOngoing(ADC1));
+
+      //LL_mDelay(400);
+      //printf("bump %d\n", count++);
+      printf("Adc: %d\n", aADCxConvertedData[0]);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -370,7 +380,7 @@ void SystemClock_Config(void)
   }
 
   /* Main PLL configuration and activation */
-  LL_RCC_PLL_ConfigDomain_ADC(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLP_DIV_15);
+  LL_RCC_PLL_ConfigDomain_ADC(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLP_DIV_2);
   LL_RCC_PLL_EnableDomain_ADC();
   LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLR_DIV_3);
   LL_RCC_PLL_Enable();

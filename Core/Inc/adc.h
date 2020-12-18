@@ -32,10 +32,6 @@ extern "C" {
 /* USER CODE END Includes */
 
 /* USER CODE BEGIN Private defines */
-/* Definitions of data related to this example */
-/* Definition of ADCx conversions data table size */
-#define ADC_CONVERTED_DATA_BUFFER_SIZE   (   4U)
-extern  __IO uint16_t aADCxConvertedData[ADC_CONVERTED_DATA_BUFFER_SIZE];
 /* USER CODE END Private defines */
 
 void MX_ADC1_Init(void);
