@@ -21,6 +21,7 @@
 #include "main.h"
 #include "adc.h"
 #include "dma.h"
+#include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
@@ -270,7 +271,8 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
-  /* USER CODE BEGIN 2 */
+  MX_TIM3_Init();
+    /* USER CODE BEGIN 2 */
 
     /* Select ADC as DMA transfer request */
     LL_DMAMUX_SetRequestID(DMAMUX1,
@@ -302,6 +304,9 @@ int main(void)
                        LL_DMA_CHANNEL_1);
 
     /*## Activation of DMA #####################################################*/
+    /* Enable counter */
+    LL_TIM_EnableCounter(TIM3);
+
     /* Enable the DMA transfer */
     LL_DMA_EnableChannel(DMA1,
                          LL_DMA_CHANNEL_1);
@@ -329,6 +334,14 @@ int main(void)
     /*       in user application.                                               */
 
 
+    if ((LL_ADC_IsEnabled(ADC1) == 1) &&
+        (LL_ADC_IsDisableOngoing(ADC1) == 0) &&
+        (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)) {
+        LL_ADC_REG_StartConversion(ADC1);
+    } else {
+        printf("Error: ADC conversion start could not be performed\n");
+    }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -340,18 +353,10 @@ int main(void)
   {
       LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
 
-      if ((LL_ADC_IsEnabled(ADC1) == 1) &&
-          (LL_ADC_IsDisableOngoing(ADC1) == 0) &&
-          (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)) {
-          LL_ADC_REG_StartConversion(ADC1);
-      } else {
-          printf("Error: ADC conversion start could not be performed\n");
-      }
-
       // Wait for adc sampling
      // while(LL_ADC_REG_IsConversionOngoing(ADC1));
 
-      LL_mDelay(1);
+      LL_mDelay(100);
       //printf("bump %d\n", count++);
       printf("Adc: %d\n", aADCxConvertedData[0]);
     /* USER CODE END WHILE */
