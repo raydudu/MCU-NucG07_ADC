@@ -24,27 +24,21 @@
 
 /* USER CODE END 0 */
 
-/* TIM3 init function */
-void MX_TIM3_Init(void)
+/* TIM6 init function */
+void MX_TIM6_Init(void)
 {
   LL_TIM_InitTypeDef TIM_InitStruct = {0};
 
   /* Peripheral clock enable */
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
+  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM6);
 
-  TIM_InitStruct.Prescaler = 2399;
+  TIM_InitStruct.Prescaler = 4799;
   TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-  TIM_InitStruct.Autoreload = 19;
-  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
-  LL_TIM_Init(TIM3, &TIM_InitStruct);
-  LL_TIM_DisableARRPreload(TIM3);
-  LL_TIM_SetClockSource(TIM3, LL_TIM_CLOCKSOURCE_INTERNAL);
-  LL_TIM_SetTriggerInput(TIM3, LL_TIM_TS_ITR0);
-  LL_TIM_SetSlaveMode(TIM3, LL_TIM_SLAVEMODE_TRIGGER);
-  LL_TIM_DisableIT_TRIG(TIM3);
-  LL_TIM_DisableDMAReq_TRIG(TIM3);
-  LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_UPDATE);
-  LL_TIM_DisableMasterSlaveMode(TIM3);
+  TIM_InitStruct.Autoreload = 10;
+  LL_TIM_Init(TIM6, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM6);
+  LL_TIM_SetTriggerOutput(TIM6, LL_TIM_TRGO_UPDATE);
+  LL_TIM_DisableMasterSlaveMode(TIM6);
 
 }
 

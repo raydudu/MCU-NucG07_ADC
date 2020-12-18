@@ -271,7 +271,7 @@ int main(void)
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_USART2_UART_Init();
-  MX_TIM3_Init();
+  MX_TIM6_Init();
   /* USER CODE BEGIN 2 */
     printf("Init complete!\n");
 
@@ -306,7 +306,7 @@ int main(void)
 
     /*## Activation of DMA #####################################################*/
     /* Enable counter */
-    LL_TIM_EnableCounter(TIM3);
+    LL_TIM_EnableCounter(TIM6);
 
     /* Enable the DMA transfer */
     LL_DMA_EnableChannel(DMA1,
