@@ -272,7 +272,8 @@ int main(void)
   MX_ADC1_Init();
   MX_USART2_UART_Init();
   MX_TIM3_Init();
-    /* USER CODE BEGIN 2 */
+  /* USER CODE BEGIN 2 */
+    printf("Init complete!\n");
 
     /* Select ADC as DMA transfer request */
     LL_DMAMUX_SetRequestID(DMAMUX1,

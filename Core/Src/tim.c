@@ -27,7 +27,7 @@
 /* TIM3 init function */
 void MX_TIM3_Init(void)
 {
-    LL_TIM_InitTypeDef TIM_InitStruct = {0};
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
 
   /* Peripheral clock enable */
   LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM3);
@@ -40,7 +40,7 @@ void MX_TIM3_Init(void)
   LL_TIM_DisableARRPreload(TIM3);
   LL_TIM_SetClockSource(TIM3, LL_TIM_CLOCKSOURCE_INTERNAL);
   LL_TIM_SetTriggerInput(TIM3, LL_TIM_TS_ITR0);
-  LL_TIM_SetSlaveMode(TIM3, LL_TIM_SLAVEMODE_TRIGGER); // DISABLED?
+  LL_TIM_SetSlaveMode(TIM3, LL_TIM_SLAVEMODE_TRIGGER);
   LL_TIM_DisableIT_TRIG(TIM3);
   LL_TIM_DisableDMAReq_TRIG(TIM3);
   LL_TIM_SetTriggerOutput(TIM3, LL_TIM_TRGO_UPDATE);
