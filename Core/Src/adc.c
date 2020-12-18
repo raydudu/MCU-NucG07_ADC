@@ -66,43 +66,6 @@ void MX_ADC1_Init(void)
   /* ADC1 interrupt Init */
   NVIC_SetPriority(ADC1_IRQn, 0);
   NVIC_EnableIRQ(ADC1_IRQn);
-    /* USER CODE BEGIN ADC1_Init 1 */
-
-
-    /* Select ADC as DMA transfer request */
-    LL_DMAMUX_SetRequestID(DMAMUX1,
-                           LL_DMAMUX_CHANNEL_0,
-                           LL_DMAMUX_REQ_ADC1);
-
-    /* Set DMA transfer addresses of source and destination */
-    LL_DMA_ConfigAddresses(DMA1,
-                           LL_DMA_CHANNEL_1,
-                           LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
-                           (uint32_t)&aADCxConvertedData,
-                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-    /* Set DMA transfer size */
-    LL_DMA_SetDataLength(DMA1,
-                         LL_DMA_CHANNEL_1,
-                         ADC_CONVERTED_DATA_BUFFER_SIZE);
-
-    /* Enable DMA transfer interruption: transfer complete */
-    LL_DMA_EnableIT_TC(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /* Enable DMA transfer interruption: half transfer */
-    LL_DMA_EnableIT_HT(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /* Enable DMA transfer interruption: transfer error */
-    LL_DMA_EnableIT_TE(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /*## Activation of DMA #####################################################*/
-    /* Enable the DMA transfer */
-    LL_DMA_EnableChannel(DMA1,
-                         LL_DMA_CHANNEL_1);
-    /* USER CODE END ADC1_Init 1 */
 
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
@@ -171,13 +134,6 @@ void MX_ADC1_Init(void)
   LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_0);
   LL_ADC_SetChannelSamplingTime(ADC1, LL_ADC_CHANNEL_0, LL_ADC_SAMPLINGTIME_COMMON_1);
 
-    /* USER CODE BEGIN ADC1_Init 2 */
-
-    /* Configuration of ADC interruptions */
-    /* Enable interruption ADC group regular overrun */
-    LL_ADC_EnableIT_OVR(ADC1);
-
-    /* USER CODE END ADC1_Init 2 */
 }
 
 /* USER CODE BEGIN 1 */

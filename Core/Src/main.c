@@ -268,6 +268,45 @@ int main(void)
   MX_ADC1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+    /* Select ADC as DMA transfer request */
+    LL_DMAMUX_SetRequestID(DMAMUX1,
+                           LL_DMAMUX_CHANNEL_0,
+                           LL_DMAMUX_REQ_ADC1);
+
+    /* Set DMA transfer addresses of source and destination */
+    LL_DMA_ConfigAddresses(DMA1,
+                           LL_DMA_CHANNEL_1,
+                           LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
+                           (uint32_t)&aADCxConvertedData,
+                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+
+    /* Set DMA transfer size */
+    LL_DMA_SetDataLength(DMA1,
+                         LL_DMA_CHANNEL_1,
+                         ADC_CONVERTED_DATA_BUFFER_SIZE);
+
+    /* Enable DMA transfer interruption: transfer complete */
+    LL_DMA_EnableIT_TC(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /* Enable DMA transfer interruption: half transfer */
+    LL_DMA_EnableIT_HT(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /* Enable DMA transfer interruption: transfer error */
+    LL_DMA_EnableIT_TE(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /*## Activation of DMA #####################################################*/
+    /* Enable the DMA transfer */
+    LL_DMA_EnableChannel(DMA1,
+                         LL_DMA_CHANNEL_1);
+
+    /* Configuration of ADC interruptions */
+    /* Enable interruption ADC group regular overrun */
+    LL_ADC_EnableIT_OVR(ADC1);
+
     /* Activate ADC */
     /* Perform ADC activation procedure to make it ready to convert. */
     Activate_ADC();
