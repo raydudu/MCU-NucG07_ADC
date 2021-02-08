@@ -53,7 +53,7 @@
 /* USER CODE BEGIN PM */
 /* Definitions of data related to this example */
 /* Definition of ADCx conversions data table size */
-#define ADC_CONVERTED_DATA_BUFFER_SIZE   (   1U)
+#define ADC_CONVERTED_DATA_BUFFER_SIZE   (   5U)
 
 /* USER CODE END PM */
 
@@ -112,7 +112,7 @@ void Activate_ADC(void)
     if (LL_ADC_IsEnabled(ADC1) == 0)
     {
         /* Enable ADC internal voltage regulator */
-        LL_ADC_EnableInternalRegulator(ADC1);
+       // LL_ADC_EnableInternalRegulator(ADC1);
 
         /* Delay for ADC internal voltage regulator stabilization.                */
         /* Compute number of CPU cycles to wait for, from delay in us.            */
@@ -120,11 +120,11 @@ void Activate_ADC(void)
         /*       CPU processing cycles (depends on compilation optimization).     */
         /* Note: If system core clock frequency is below 200kHz, wait time        */
         /*       is only a few CPU processing cycles.                             */
-        wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
-        while(wait_loop_index != 0)
-        {
-            wait_loop_index--;
-        }
+       // wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+       // while(wait_loop_index != 0)
+       // {
+       //     wait_loop_index--;
+       // }
 
         /* Disable ADC DMA transfer request during calibration */
         /* Note: Specificity of this STM32 series: Calibration factor is          */
@@ -359,7 +359,28 @@ int main(void)
 
       LL_mDelay(100);
       //printf("bump %d\n", count++);
-      printf("Adc: %d\n", aADCxConvertedData[0]);
+#if 0
+      printf("A1: %d, A2: %d, A3: %d, A4: %d, A5: %d\n", aADCxConvertedData[0], aADCxConvertedData[1],
+             aADCxConvertedData[2], aADCxConvertedData[3], aADCxConvertedData[4]);
+#else
+      uint16_t V1_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[0], LL_ADC_RESOLUTION_12B);
+      uint16_t V2_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[1], LL_ADC_RESOLUTION_12B);
+      uint16_t V3_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[2], LL_ADC_RESOLUTION_12B);
+
+      uint16_t VrefInt_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
+      uint16_t Temperature_DegreeCelsius = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
+
+      /* Optionally, for this example purpose, calculate analog reference       */
+      /* voltage (Vref+) from ADC conversion of internal voltage reference      */
+      /* VrefInt.                                                               */
+      /* This voltage should correspond to value of literal "VDDA_APPLI".       */
+      /* Note: This calculation can be performed when value of voltage Vref+    */
+      /* is unknown in the application.                                         */
+      uint16_t VrefAnalog_mVolt = __LL_ADC_CALC_VREFANALOG_VOLTAGE(aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
+      printf("V1: %d, V2: %d, V3: %d, VrefInt: %d, Temp: %d, VrefAnalog: %d\n",
+             V1_mVolt, V2_mVolt, V3_mVolt,
+             VrefInt_mVolt, Temperature_DegreeCelsius, VrefAnalog_mVolt);
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
