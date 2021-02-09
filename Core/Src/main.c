@@ -72,8 +72,6 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
-void print_ADC_data();
-
 /* USER CODE BEGIN 0 */
 int __io_putchar(int ch) {
     while (!LL_USART_IsActiveFlag_TXE(DEBUGPORT));
@@ -215,7 +213,7 @@ void print_ADC_data() {
     uint16_t V3_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[2], LL_ADC_RESOLUTION_12B);
 
     uint16_t VrefInt_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
-    uint16_t Temp_DegC = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
+    int16_t Temp_DegC = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
 
     /* Optionally, for this example purpose, calculate analog reference       */
     /* voltage (Vref+) from ADC conversion of internal voltage reference      */
@@ -242,6 +240,11 @@ void AdcDmaTransferComplete_Callback() {
     /* Computation of ADC conversions raw data to physical values               */
     /* using LL ADC driver helper macro.                                        */
     /* Management of the 2nd half of the buffer */
+    static uint16_t intcount = 0;
+    if (intcount++ == 1000 ) {
+        print_ADC_data();
+        intcount = 0;
+    }
 }
 
 /**
@@ -360,18 +363,18 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
-  int count = 0;
+  LL_GPIO_SetOutputPin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
   while (1)
   {
-      LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-
       // Wait for adc sampling
      // while(LL_ADC_REG_IsConversionOngoing(ADC1));
 
-      LL_mDelay(100);
-      //printf("bump %d\n", count++);
+     __WFI();
+//      print_ADC_data();
 
-      print_ADC_data();
+      LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+
+      LL_mDelay(100);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -426,14 +429,14 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+_Noreturn
 /* USER CODE END 4 */
 
 /**
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-_Noreturn void Error_Handler(void)
+void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
