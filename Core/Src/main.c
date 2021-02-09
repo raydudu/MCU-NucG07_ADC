@@ -72,6 +72,8 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
+void print_ADC_data();
+
 /* USER CODE BEGIN 0 */
 int __io_putchar(int ch) {
     while (!LL_USART_IsActiveFlag_TXE(DEBUGPORT));
@@ -91,12 +93,10 @@ int __io_putchar(int ch) {
 
     return 0;
 }
-void Activate_ADC(void)
-{
+
+void Activate_ADC(void) {
     __IO uint32_t wait_loop_index = 0U;
     __IO uint32_t backup_setting_adc_dma_transfer = 0U;
-
-    /*## Operation on ADC hierarchical scope: ADC instance #####################*/
 
     /* Note: Hardware constraint (refer to description of the functions         */
     /*       below):                                                            */
@@ -109,60 +109,90 @@ void Activate_ADC(void)
     /*       Software can be optimized by removing some of these checks, if     */
     /*       they are not relevant considering previous settings and actions    */
     /*       in user application.                                               */
-    if (LL_ADC_IsEnabled(ADC1) == 0)
-    {
-        /* Enable ADC internal voltage regulator */
-       // LL_ADC_EnableInternalRegulator(ADC1);
-
-        /* Delay for ADC internal voltage regulator stabilization.                */
-        /* Compute number of CPU cycles to wait for, from delay in us.            */
-        /* Note: Variable divided by 2 to compensate partially                    */
-        /*       CPU processing cycles (depends on compilation optimization).     */
-        /* Note: If system core clock frequency is below 200kHz, wait time        */
-        /*       is only a few CPU processing cycles.                             */
-       // wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
-       // while(wait_loop_index != 0)
-       // {
-       //     wait_loop_index--;
-       // }
-
-        /* Disable ADC DMA transfer request during calibration */
-        /* Note: Specificity of this STM32 series: Calibration factor is          */
-        /*       available in data register and also transferred by DMA.          */
-        /*       To not insert ADC calibration factor among ADC conversion data   */
-        /*       in DMA destination address, DMA transfer must be disabled during */
-        /*       calibration.                                                     */
-        backup_setting_adc_dma_transfer = LL_ADC_REG_GetDMATransfer(ADC1);
-        LL_ADC_REG_SetDMATransfer(ADC1, LL_ADC_REG_DMA_TRANSFER_NONE);
-
-        /* Run ADC self calibration */
-        LL_ADC_StartCalibration(ADC1);
-
-        /* Poll for ADC effectively calibrated */
-        while (LL_ADC_IsCalibrationOnGoing(ADC1) != 0);
-
-        /* Restore ADC DMA transfer request after calibration */
-        LL_ADC_REG_SetDMATransfer(ADC1, backup_setting_adc_dma_transfer);
-
-        /* Delay between ADC end of calibration and ADC enable.                   */
-        /* Note: Variable divided by 2 to compensate partially                    */
-        /*       CPU processing cycles (depends on compilation optimization).     */
-        wait_loop_index = (ADC_DELAY_CALIB_ENABLE_CPU_CYCLES >> 1);
-        while(wait_loop_index != 0)
-        {
-            wait_loop_index--;
-        }
-
-        /* Enable ADC */
-        LL_ADC_Enable(ADC1);
-
-        /* Poll for ADC ready to convert */
-        while (LL_ADC_IsActiveFlag_ADRDY(ADC1) == 0);
-        /* Note: ADC flag ADRDY is not cleared here to be able to check ADC       */
-        /*       status afterwards.                                               */
-        /*       This flag should be cleared at ADC Deactivation, before a new    */
-        /*       ADC activation, using function "LL_ADC_ClearFlag_ADRDY()".       */
+    if (LL_ADC_IsEnabled(ADC1) != 0) {
+        return;
     }
+
+    /* Select ADC as DMA transfer request */
+    LL_DMAMUX_SetRequestID(DMAMUX1,
+                           LL_DMAMUX_CHANNEL_0,
+                           LL_DMAMUX_REQ_ADC1);
+
+    /* Set DMA transfer addresses of source and destination */
+    LL_DMA_ConfigAddresses(DMA1,
+                           LL_DMA_CHANNEL_1,
+                           LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
+                           (uint32_t)&aADCxConvertedData,
+                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+
+    /* Set DMA transfer size */
+    LL_DMA_SetDataLength(DMA1,
+                         LL_DMA_CHANNEL_1,
+                         ADC_CONVERTED_DATA_BUFFER_SIZE);
+
+    /* Enable DMA transfer interruption: transfer complete */
+    LL_DMA_EnableIT_TC(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /* Enable DMA transfer interruption: half transfer */
+    LL_DMA_EnableIT_HT(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /* Enable DMA transfer interruption: transfer error */
+    LL_DMA_EnableIT_TE(DMA1,
+                       LL_DMA_CHANNEL_1);
+
+    /*## Activation of DMA #####################################################*/
+    /* Enable counter */
+    LL_TIM_EnableCounter(TIM6);
+
+    /* Enable the DMA transfer */
+    LL_DMA_EnableChannel(DMA1,
+                         LL_DMA_CHANNEL_1);
+
+    /* Configuration of ADC interruptions */
+    /* Enable interruption ADC group regular overrun */
+    LL_ADC_EnableIT_OVR(ADC1);
+
+
+    /*## Operation on ADC hierarchical scope: ADC instance #####################*/
+
+    /* Disable ADC DMA transfer request during calibration */
+    /* Note: Specificity of this STM32 series: Calibration factor is          */
+    /*       available in data register and also transferred by DMA.          */
+    /*       To not insert ADC calibration factor among ADC conversion data   */
+    /*       in DMA destination address, DMA transfer must be disabled during */
+    /*       calibration.                                                     */
+    backup_setting_adc_dma_transfer = LL_ADC_REG_GetDMATransfer(ADC1);
+    LL_ADC_REG_SetDMATransfer(ADC1, LL_ADC_REG_DMA_TRANSFER_NONE);
+
+    /* Run ADC self calibration */
+    LL_ADC_StartCalibration(ADC1);
+
+    /* Poll for ADC effectively calibrated */
+    while (LL_ADC_IsCalibrationOnGoing(ADC1) != 0);
+
+    /* Restore ADC DMA transfer request after calibration */
+    LL_ADC_REG_SetDMATransfer(ADC1, backup_setting_adc_dma_transfer);
+
+    /* Delay between ADC end of calibration and ADC enable.                   */
+    /* Note: Variable divided by 2 to compensate partially                    */
+    /*       CPU processing cycles (depends on compilation optimization).     */
+    wait_loop_index = (ADC_DELAY_CALIB_ENABLE_CPU_CYCLES >> 1);
+    while (wait_loop_index != 0) {
+        wait_loop_index--;
+    }
+
+    /* Enable ADC */
+    LL_ADC_Enable(ADC1);
+
+    /* Poll for ADC ready to convert */
+    while (LL_ADC_IsActiveFlag_ADRDY(ADC1) == 0);
+    /* Note: ADC flag ADRDY is not cleared here to be able to check ADC       */
+    /*       status afterwards.                                               */
+    /*       This flag should be cleared at ADC Deactivation, before a new    */
+    /*       ADC activation, using function "LL_ADC_ClearFlag_ADRDY()".       */
+
 
     /*## Operation on ADC hierarchical scope: ADC group regular ################*/
     /* Note: No operation on ADC group regular performed here.                  */
@@ -175,6 +205,33 @@ void Activate_ADC(void)
 
 }
 
+void print_ADC_data() {
+#if 0
+    printf("A1: %d, A2: %d, A3: %d, A4: %d, A5: %d\n", aADCxConvertedData[0], aADCxConvertedData[1],
+             aADCxConvertedData[2], aADCxConvertedData[3], aADCxConvertedData[4]);
+#else
+    uint16_t V1_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[0], LL_ADC_RESOLUTION_12B);
+    uint16_t V2_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[1], LL_ADC_RESOLUTION_12B);
+    uint16_t V3_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[2], LL_ADC_RESOLUTION_12B);
+
+    uint16_t VrefInt_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
+    uint16_t Temp_DegC = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
+
+    /* Optionally, for this example purpose, calculate analog reference       */
+    /* voltage (Vref+) from ADC conversion of internal voltage reference      */
+    /* VrefInt.                                                               */
+    /* This voltage should correspond to value of literal "VDD_VALUE".       */
+    /* Note: This calculation can be performed when value of voltage Vref+    */
+    /* is unknown in the application.                                         */
+    uint16_t VrefAnalog_mVolt = __LL_ADC_CALC_VREFANALOG_VOLTAGE(aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
+
+    printf("V1: %d, V2: %d, V3: %d, VrefInt: %d, Temp: %d, VrefAnalog: %d\n",
+           V1_mVolt, V2_mVolt, V3_mVolt,
+           VrefInt_mVolt, Temp_DegC, VrefAnalog_mVolt);
+#endif
+}
+
+
 /**
   * @brief  DMA transfer complete callback
   * @note   This function is executed when the transfer complete interrupt
@@ -185,8 +242,6 @@ void AdcDmaTransferComplete_Callback() {
     /* Computation of ADC conversions raw data to physical values               */
     /* using LL ADC driver helper macro.                                        */
     /* Management of the 2nd half of the buffer */
-    //aADCxConvertedData_Voltage_mVolt[tmp_index] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, aADCxConvertedData[tmp_index], LL_ADC_RESOLUTION_12B);
-  //  printf("AdcDmaTransferComplete: %d\n", aADCxConvertedData[0]);
 }
 
 /**
@@ -199,8 +254,6 @@ void AdcDmaTransferHalf_Callback() {
     /* Computation of ADC conversions raw data to physical values               */
     /* using LL ADC driver helper macro.                                        */
     /* Management of the 1st half of the buffer */
-//        aADCxConvertedData_Voltage_mVolt[tmp_index] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, aADCxConvertedData[tmp_index], LL_ADC_RESOLUTION_12B);
-  //  printf("AdcDmaTransferHalf: %d\n", aADCxConvertedData[0]);
 }
 
 /**
@@ -229,6 +282,7 @@ void AdcGrpRegularOverrunError_Callback(void) {
 
     printf("AdcGrpRegularOverrunError\n");
 }
+
 
 /* USER CODE END 0 */
 
@@ -275,47 +329,6 @@ int main(void)
   /* USER CODE BEGIN 2 */
     printf("Init complete!\n");
 
-    /* Select ADC as DMA transfer request */
-    LL_DMAMUX_SetRequestID(DMAMUX1,
-                           LL_DMAMUX_CHANNEL_0,
-                           LL_DMAMUX_REQ_ADC1);
-
-    /* Set DMA transfer addresses of source and destination */
-    LL_DMA_ConfigAddresses(DMA1,
-                           LL_DMA_CHANNEL_1,
-                           LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
-                           (uint32_t)&aADCxConvertedData,
-                           LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
-
-    /* Set DMA transfer size */
-    LL_DMA_SetDataLength(DMA1,
-                         LL_DMA_CHANNEL_1,
-                         ADC_CONVERTED_DATA_BUFFER_SIZE);
-
-    /* Enable DMA transfer interruption: transfer complete */
-    LL_DMA_EnableIT_TC(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /* Enable DMA transfer interruption: half transfer */
-    LL_DMA_EnableIT_HT(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /* Enable DMA transfer interruption: transfer error */
-    LL_DMA_EnableIT_TE(DMA1,
-                       LL_DMA_CHANNEL_1);
-
-    /*## Activation of DMA #####################################################*/
-    /* Enable counter */
-    LL_TIM_EnableCounter(TIM6);
-
-    /* Enable the DMA transfer */
-    LL_DMA_EnableChannel(DMA1,
-                         LL_DMA_CHANNEL_1);
-
-    /* Configuration of ADC interruptions */
-    /* Enable interruption ADC group regular overrun */
-    LL_ADC_EnableIT_OVR(ADC1);
-
     /* Activate ADC */
     /* Perform ADC activation procedure to make it ready to convert. */
     Activate_ADC();
@@ -333,8 +346,6 @@ int main(void)
     /*       Software can be optimized by removing some of these checks, if     */
     /*       they are not relevant considering previous settings and actions    */
     /*       in user application.                                               */
-
-
     if ((LL_ADC_IsEnabled(ADC1) == 1) &&
         (LL_ADC_IsDisableOngoing(ADC1) == 0) &&
         (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)) {
@@ -359,28 +370,8 @@ int main(void)
 
       LL_mDelay(100);
       //printf("bump %d\n", count++);
-#if 0
-      printf("A1: %d, A2: %d, A3: %d, A4: %d, A5: %d\n", aADCxConvertedData[0], aADCxConvertedData[1],
-             aADCxConvertedData[2], aADCxConvertedData[3], aADCxConvertedData[4]);
-#else
-      uint16_t V1_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[0], LL_ADC_RESOLUTION_12B);
-      uint16_t V2_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[1], LL_ADC_RESOLUTION_12B);
-      uint16_t V3_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[2], LL_ADC_RESOLUTION_12B);
 
-      uint16_t VrefInt_mVolt            = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
-      uint16_t Temperature_DegreeCelsius = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
-
-      /* Optionally, for this example purpose, calculate analog reference       */
-      /* voltage (Vref+) from ADC conversion of internal voltage reference      */
-      /* VrefInt.                                                               */
-      /* This voltage should correspond to value of literal "VDDA_APPLI".       */
-      /* Note: This calculation can be performed when value of voltage Vref+    */
-      /* is unknown in the application.                                         */
-      uint16_t VrefAnalog_mVolt = __LL_ADC_CALC_VREFANALOG_VOLTAGE(aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
-      printf("V1: %d, V2: %d, V3: %d, VrefInt: %d, Temp: %d, VrefAnalog: %d\n",
-             V1_mVolt, V2_mVolt, V3_mVolt,
-             VrefInt_mVolt, Temperature_DegreeCelsius, VrefAnalog_mVolt);
-#endif
+      print_ADC_data();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -442,7 +433,7 @@ void SystemClock_Config(void)
   * @brief  This function is executed in case of error occurrence.
   * @retval None
   */
-void Error_Handler(void)
+_Noreturn void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
