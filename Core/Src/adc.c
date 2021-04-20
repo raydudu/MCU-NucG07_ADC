@@ -27,6 +27,11 @@
 /* ADC1 init function */
 void MX_ADC1_Init(void)
 {
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
   LL_ADC_InitTypeDef ADC_InitStruct = {0};
   LL_ADC_REG_InitTypeDef ADC_REG_InitStruct = {0};
 
@@ -36,10 +41,15 @@ void MX_ADC1_Init(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_ADC);
 
   LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
   /**ADC1 GPIO Configuration
   PA0   ------> ADC1_IN0
   PA1   ------> ADC1_IN1
   PA4   ------> ADC1_IN4
+  PC4   ------> ADC1_IN17
+  PC5   ------> ADC1_IN18
+  PB12   ------> ADC1_IN16
   */
   GPIO_InitStruct.Pin = LL_GPIO_PIN_0;
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
@@ -55,6 +65,21 @@ void MX_ADC1_Init(void)
   GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
   GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
   LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_4;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LL_GPIO_PIN_12;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
   /* ADC1 DMA Init */
 
@@ -79,6 +104,9 @@ void MX_ADC1_Init(void)
   NVIC_SetPriority(ADC1_IRQn, 0);
   NVIC_EnableIRQ(ADC1_IRQn);
 
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
 
@@ -104,8 +132,9 @@ void MX_ADC1_Init(void)
   LL_ADC_SetOverSamplingScope(ADC1, LL_ADC_OVS_DISABLE);
   LL_ADC_SetTriggerFrequencyMode(ADC1, LL_ADC_CLOCK_FREQ_MODE_HIGH);
   LL_ADC_REG_SetSequencerChAdd(ADC1, LL_ADC_CHANNEL_0|LL_ADC_CHANNEL_1
-                              |LL_ADC_CHANNEL_4|LL_ADC_CHANNEL_TEMPSENSOR
-                              |LL_ADC_CHANNEL_VREFINT);
+                              |LL_ADC_CHANNEL_4|LL_ADC_CHANNEL_16
+                              |LL_ADC_CHANNEL_17|LL_ADC_CHANNEL_18
+                              |LL_ADC_CHANNEL_TEMPSENSOR|LL_ADC_CHANNEL_VREFINT);
 
    /* Poll for ADC channel configuration ready */
    #if (USE_TIMEOUT == 1)
@@ -146,6 +175,9 @@ void MX_ADC1_Init(void)
      {
    wait_loop_index--;
      }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
 
 }
 
