@@ -28,23 +28,7 @@ extern "C" {
 #endif
 
 /* Includes ------------------------------------------------------------------*/
-
-#include "stm32g0xx_ll_adc.h"
-#include "stm32g0xx_ll_dma.h"
-#include "stm32g0xx_ll_rcc.h"
-#include "stm32g0xx_ll_bus.h"
-#include "stm32g0xx_ll_system.h"
-#include "stm32g0xx_ll_exti.h"
-#include "stm32g0xx_ll_cortex.h"
-#include "stm32g0xx_ll_utils.h"
-#include "stm32g0xx_ll_pwr.h"
-#include "stm32g0xx_ll_tim.h"
-#include "stm32g0xx_ll_usart.h"
-#include "stm32g0xx_ll_gpio.h"
-
-#if defined(USE_FULL_ASSERT)
-#include "stm32_assert.h"
-#endif /* USE_FULL_ASSERT */
+#include "stm32g0xx_hal.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -78,11 +62,11 @@ void AdcDmaTransferComplete_Callback();
 
 /* Private defines -----------------------------------------------------------*/
 #define DEBUGPORT USART2
-#define LED_GREEN_Pin LL_GPIO_PIN_5
+#define LED_GREEN_Pin GPIO_PIN_5
 #define LED_GREEN_GPIO_Port GPIOA
-#define TMS_Pin LL_GPIO_PIN_13
+#define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
-#define TCK_Pin LL_GPIO_PIN_14
+#define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
 /* USER CODE BEGIN Private defines */
 

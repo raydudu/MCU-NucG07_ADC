@@ -73,6 +73,12 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+#ifdef USE_HAL_DRIVER
+int __io_putchar(int ch) {
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 1000);
+    return 0;
+}
+#else
 int __io_putchar(int ch) {
     while (!LL_USART_IsActiveFlag_TXE(DEBUGPORT));
 
@@ -91,7 +97,29 @@ int __io_putchar(int ch) {
 
     return 0;
 }
+#endif
 
+#ifdef USE_HAL_DRIVER
+void Activate_ADC(void) {
+    /* Run the ADC calibration */
+    if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+        /* Calibration Error */
+        Error_Handler();
+    }
+    /* Enable Timer */
+    if (HAL_TIM_Base_Start(&htim6) != HAL_OK) {
+        /* Counter enable error */
+        Error_Handler();
+    }
+
+    /* Start ADC conversions */
+    /* Start ADC group regular conversion with DMA */
+    if (HAL_ADC_Start_DMA(&hadc1, (uint32_t *) adcValues, ADC_CONVERTED_DATA_BUFFER_SIZE) != HAL_OK) {
+        /* ADC conversion start error */
+        Error_Handler();
+    }
+}
+#else
 void Activate_ADC(void) {
     __IO uint32_t wait_loop_index = 0U;
     __IO uint32_t backup_setting_adc_dma_transfer = 0U;
@@ -202,6 +230,7 @@ void Activate_ADC(void) {
     /* Note: Feature not available on this STM32 series */
 
 }
+#endif
 
 void print_ADC_data() {
     uint32_t aChannels = LL_ADC_REG_GetSequencerChannels(ADC1);
@@ -299,15 +328,7 @@ int main(void)
   /* MCU Configuration--------------------------------------------------------*/
 
   /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-
-  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
-  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
-
-  /* System interrupt init*/
-
-  /** Disable the internal Pull-Up in Dead Battery pins of UCPD peripheral
-  */
-  LL_SYSCFG_DisableDBATT(LL_SYSCFG_UCPD1_STROBE | LL_SYSCFG_UCPD2_STROBE);
+  HAL_Init();
 
   /* USER CODE BEGIN Init */
 
@@ -360,7 +381,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
-  LL_GPIO_SetOutputPin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+#ifdef USE_HAL_DRIVER
+    HAL_GPIO_WritePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin, 0);
+#else
+    LL_GPIO_SetOutputPin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+#endif
   while (1)
   {
       // Wait for adc sampling
@@ -368,10 +393,13 @@ int main(void)
 
      __WFI();
 //      print_ADC_data();
-
+#ifdef USE_HAL_DRIVER
+      HAL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
+      HAL_Delay(100);
+#else
       LL_GPIO_TogglePin(LED_GREEN_GPIO_Port, LED_GREEN_Pin);
-
       LL_mDelay(100);
+#endif
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -386,43 +414,51 @@ int main(void)
   */
 void SystemClock_Config(void)
 {
-  LL_FLASH_SetLatency(LL_FLASH_LATENCY_1);
-  while(LL_FLASH_GetLatency() != LL_FLASH_LATENCY_1)
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+  RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+  RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
+  RCC_OscInitStruct.PLL.PLLN = 9;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV15;
+  RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV3;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
+    Error_Handler();
   }
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-  /* HSI configuration and activation */
-  LL_RCC_HSI_Enable();
-  while(LL_RCC_HSI_IsReady() != 1)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
   {
+    Error_Handler();
   }
-
-  /* Main PLL configuration and activation */
-  LL_RCC_PLL_ConfigDomain_ADC(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLP_DIV_15);
-  LL_RCC_PLL_EnableDomain_ADC();
-  LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSI, LL_RCC_PLLM_DIV_1, 9, LL_RCC_PLLR_DIV_3);
-  LL_RCC_PLL_Enable();
-  LL_RCC_PLL_EnableDomain_SYS();
-  while(LL_RCC_PLL_IsReady() != 1)
+  /** Initializes the peripherals clocks
+  */
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_ADC;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.AdcClockSelection = RCC_ADCCLKSOURCE_PLLADC;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
+    Error_Handler();
   }
-
-  /* Set AHB prescaler*/
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
-
-  /* Sysclk activation on the main PLL */
-  LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
-  while(LL_RCC_GetSysClkSource() != LL_RCC_SYS_CLKSOURCE_STATUS_PLL)
-  {
-  }
-
-  /* Set APB1 prescaler*/
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
-  LL_Init1msTick(48000000);
-  /* Update CMSIS variable (which can be updated also through SystemCoreClockUpdate function) */
-  LL_SetSystemCoreClock(48000000);
-  LL_RCC_SetUSARTClockSource(LL_RCC_USART2_CLKSOURCE_PCLK1);
-  LL_RCC_SetADCClockSource(LL_RCC_ADC_CLKSOURCE_PLL);
 }
 
 /* USER CODE BEGIN 4 */
