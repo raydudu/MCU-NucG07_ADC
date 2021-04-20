@@ -61,7 +61,7 @@
 
 /* USER CODE BEGIN PV */
 /* Variables for ADC conversion data */
-__IO uint16_t aADCxConvertedData[ADC_CONVERTED_DATA_BUFFER_SIZE]; /* ADC group regular conversion data */
+__IO uint16_t adcValues[ADC_CONVERTED_DATA_BUFFER_SIZE]; /* ADC group regular conversion data */
 
 /* USER CODE END PV */
 
@@ -120,7 +120,7 @@ void Activate_ADC(void) {
     LL_DMA_ConfigAddresses(DMA1,
                            LL_DMA_CHANNEL_1,
                            LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
-                           (uint32_t)&aADCxConvertedData,
+                           (uint32_t)&adcValues,
                            LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
 
     /* Set DMA transfer size */
@@ -204,31 +204,28 @@ void Activate_ADC(void) {
 }
 
 void print_ADC_data() {
-#if 0
-    printf("A1: %d, A2: %d, A3: %d, A4: %d, A5: %d\n", aADCxConvertedData[0], aADCxConvertedData[1],
-             aADCxConvertedData[2], aADCxConvertedData[3], aADCxConvertedData[4]);
-#else
-    uint16_t V1_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[0], LL_ADC_RESOLUTION_12B);
-    uint16_t V2_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[1], LL_ADC_RESOLUTION_12B);
-    uint16_t V3_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[2], LL_ADC_RESOLUTION_12B);
-
-    uint16_t VrefInt_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
-    int16_t Temp_DegC = __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, aADCxConvertedData[3], LL_ADC_RESOLUTION_12B);
-
-    /* Optionally, for this example purpose, calculate analog reference       */
-    /* voltage (Vref+) from ADC conversion of internal voltage reference      */
-    /* VrefInt.                                                               */
-    /* This voltage should correspond to value of literal "VDD_VALUE".       */
-    /* Note: This calculation can be performed when value of voltage Vref+    */
-    /* is unknown in the application.                                         */
-    uint16_t VrefAnalog_mVolt = __LL_ADC_CALC_VREFANALOG_VOLTAGE(aADCxConvertedData[4], LL_ADC_RESOLUTION_12B);
-
-    printf("V1: %d, V2: %d, V3: %d, VrefInt: %d, Temp: %d, VrefAnalog: %d\n",
-           V1_mVolt, V2_mVolt, V3_mVolt,
-           VrefInt_mVolt, Temp_DegC, VrefAnalog_mVolt);
-#endif
+    uint32_t aChannels = LL_ADC_REG_GetSequencerChannels(ADC1);
+    unsigned chanPos = 0;
+    for (unsigned i = 0; i < ADC_CHSELR_CHSEL18_BITOFFSET_POS; i++) {
+        if (aChannels & (1 << i)) {
+            if ((1U << i) == (LL_ADC_CHANNEL_TEMPSENSOR & ADC_CHSELR_CHSEL_Msk)) {
+                printf("Temp Channel #%d (at %d) = %ld ºC (raw: %d)\n", i, chanPos,
+                       __LL_ADC_CALC_TEMPERATURE(VDD_VALUE, adcValues[chanPos],
+                                                 LL_ADC_RESOLUTION_12B), adcValues[chanPos]);
+            } else if ((1U << i) == (LL_ADC_CHANNEL_VREFINT & ADC_CHSELR_CHSEL_Msk)) {
+                printf("VREF Channel #%d (at %d) = %lu mV (raw: %d)\n", i, chanPos,
+                       __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, adcValues[chanPos],
+                                                     LL_ADC_RESOLUTION_12B), adcValues[chanPos]);
+            } else {
+                printf("Volt Channel #%d (at %d) = %lu mV (raw: %d)\n", i, chanPos,
+                       __LL_ADC_CALC_DATA_TO_VOLTAGE(VDD_VALUE, adcValues[chanPos],
+                                                     LL_ADC_RESOLUTION_12B), adcValues[chanPos]);
+            }
+            chanPos++;
+        }
+    }
+    printf("\n");
 }
-
 
 /**
   * @brief  DMA transfer complete callback
